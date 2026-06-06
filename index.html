@@ -51,6 +51,12 @@ button { touch-action: manipulation; }
 .btn-secondary:active { background: #F5EFE5; }
 .result-box { background: #fff; border: 1px solid #EDE3D5; border-radius: 14px; padding: 18px; margin-bottom: 14px; font-size: 14px; line-height: 1.9; color: #2C1A08; white-space: pre-wrap; word-break: break-all; }
 .result-tip { text-align: center; font-size: 12px; color: #A07850; margin-bottom: 14px; }
+.media-box { background:#FFF9F2; border:1px solid #E8D5BD; border-radius:14px; padding:16px; margin:0 0 14px; }
+.media-title { font-size:15px; font-weight:600; color:#3D2010; margin-bottom:10px; }
+.media-row { margin-top:10px; }
+.media-label { font-size:12px; font-weight:600; color:#C8956B; margin-bottom:4px; }
+.media-text { font-size:13px; line-height:1.7; color:#5A402A; white-space:pre-wrap; }
+.media-note { margin-top:10px; padding-top:10px; border-top:1px dashed #DFC9AE; font-size:12px; line-height:1.6; color:#94704F; }
 .footer { text-align: center; margin-top: 28px; font-size: 11px; color: #C0A888; padding-bottom: 20px; }
 </style>
 </head>
@@ -74,6 +80,12 @@ button { touch-action: manipulation; }
     <button class="back" onclick="goList()">‹ 返回选模板</button>
     <p class="result-tip">👇 文案已生成，点击复制后去微信粘贴</p>
     <div class="result-box" id="result-text"></div>
+    <div class="media-box" id="media-box">
+      <div class="media-title">📷 这条文案配什么图 / 视频</div>
+      <div class="media-row"><div class="media-label">首选图片</div><div class="media-text" id="media-photo"></div></div>
+      <div class="media-row"><div class="media-label">首选视频</div><div class="media-text" id="media-video"></div></div>
+      <div class="media-note" id="media-note"></div>
+    </div>
     <button class="btn-main" id="copy-btn" onclick="copyText()">📋 一键复制文案</button>
     <button class="btn-secondary" onclick="reEdit()">重新修改</button>
   </div>
@@ -82,37 +94,328 @@ button { touch-action: manipulation; }
 <script>
 const PHONE = "L13579655596";
 const templates = [
-{id:1,category:"案例记录",color:"#C8956B",bg:"#FDF0E8",name:"积食 / 消化不好",icon:"🍽️",fields:[{key:"age",label:"宝宝几岁",placeholder:"例：3"},{key:"days",label:"几天没好好吃饭",placeholder:"例：3"},{key:"symptom",label:"还有什么症状（可不填）",placeholder:"例：肚子鼓鼓的、口气重"}],gen:(f)=>`今天上门｜${f.age}岁宝宝，${f.days}天没好好吃饭${f.symptom?`，${f.symptom}`:""}，睡觉也不安稳。\n\n重点调理：脾胃 + 消积\n推拿结束宝宝很快入睡 🌙\n\n积食不处理，反复感冒、睡眠差都会跟着来。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:2,category:"案例记录",color:"#C8956B",bg:"#FDF0E8",name:"感冒 / 免疫力差",icon:"🤧",fields:[{key:"age",label:"宝宝几岁",placeholder:"例：2"},{key:"months",label:"反复感冒多久了",placeholder:"例：一个多月"},{key:"result",label:"推拿后效果",placeholder:"例：出了点汗，状态轻松了"}],gen:(f)=>`今天上门｜${f.age}岁宝宝，反复感冒${f.months}，刚好没几天又开始流鼻涕。\n\n重点调理：肺经 + 补正气\n推拿后${f.result||"状态明显改善"}。\n\n孩子老生病，根本在于正气不足。把体质调好，比每次生病吃药更重要。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:3,category:"案例记录",color:"#C8956B",bg:"#FDF0E8",name:"睡眠差 / 夜啼",icon:"😴",fields:[{key:"age",label:"宝宝几岁",placeholder:"例：1"},{key:"symptom",label:"睡眠问题描述",placeholder:"例：夜里频繁醒，哭闹"}],gen:(f)=>`今天上门｜${f.age}岁宝宝，入睡困难，${f.symptom||"夜里频繁醒"}，妈妈也跟着没睡好。\n\n重点调理：安神 + 心脾\n推拿结束宝宝当场睡着了 😴\n\n孩子睡不好，多半是脾胃积热或心神不宁，推拿比吃药温和，适合长期坚持。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:4,category:"案例记录",color:"#C8956B",bg:"#FDF0E8",name:"发烧 / 低热",icon:"🌡️",fields:[{key:"age",label:"宝宝几岁",placeholder:"例：4"},{key:"temp",label:"体温（度）",placeholder:"例：38.2"},{key:"result",label:"推拿后效果",placeholder:"例：体温回落，宝宝安静了"}],gen:(f)=>`今天上门｜${f.age}岁宝宝，低烧${f.temp}度，精神还好，家长不想直接上退烧药。\n\n重点调理：清热 + 退烧穴位\n推拿完${f.result||"体温明显回落"}。\n\n38.5度以下的低烧，推拿配合物理降温是很好的选择。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:5,category:"好评反馈",color:"#378ADD",bg:"#EBF4FF",name:"家长说好话了",icon:"💬",fields:[{key:"feedback",label:"家长说的话（原话最真实）",placeholder:"例：孩子这周胃口好多了，主动要添饭！",type:"textarea"}],gen:(f)=>`收到宝妈的反馈，很开心 🙏\n\n"${f.feedback}"\n\n做这行最有成就感的时刻就是这种——孩子好了，家长安心了，值得。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:6,category:"好评反馈",color:"#378ADD",bg:"#EBF4FF",name:"锦旗 / 特别致谢",icon:"🏅",fields:[{key:"name",label:"家长姓名",placeholder:"例：吴玥静"},{key:"words",label:"锦旗上的话",placeholder:"例：妙手巧推拿，医德暖人心"}],gen:(f)=>`家长送来的锦旗，字字让我感动。\n\n"${f.words}"\n\n这几个字是对我最大的鼓励，也是我继续认真做下去的动力。\n感谢${f.name}家长的信任与认可 🙏\n\n哈密上门小儿推拿，有需要的宝妈私信我。\n微信：${PHONE}`},
-{id:7,category:"好评反馈",color:"#378ADD",bg:"#EBF4FF",name:"老客户复购了",icon:"🔁",fields:[{key:"times",label:"第几次推拿了",placeholder:"例：8"},{key:"before",label:"最初是什么问题",placeholder:"例：积食、睡不好"},{key:"after",label:"现在改善情况",placeholder:"例：吃饭香了，睡觉安稳"}],gen:(f)=>`这是第${f.times}次给这个小朋友推拿了。\n\n从最初的${f.before||"各种不舒服"}，到现在${f.after||"明显改善"}，宝妈说孩子比以前好带多了。\n\n坚持调理真的有效果。孩子体质不是一两次能改变的，贵在坚持。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:8,category:"科普知识",color:"#3B6D11",bg:"#EBF5E0",name:"如何判断积食",icon:"📋",fields:[],gen:()=>`分享一个判断孩子积食的小方法 👇\n\n✅ 口气重、有酸味\n✅ 舌苔厚白或发黄\n✅ 大便臭、不规律\n✅ 睡觉翻来覆去\n✅ 食欲突然变差\n\n有2条以上，基本可以判断积食了。\n积食不处理，容易反复感冒、睡眠差。\n\n有问题欢迎私信——\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:9,category:"科普知识",color:"#3B6D11",bg:"#EBF5E0",name:"看舌苔识健康",icon:"👅",fields:[],gen:()=>`宝宝的舌苔，会说话 👇\n\n🟡 薄白苔 → 正常，脾胃健康\n🟡 白厚苔 → 积食、消化不好\n🟡 黄厚苔 → 积食化热，有内火\n🟡 地图舌 → 脾胃虚弱，需要调理\n🟡 无苔/镜面舌 → 气阴两虚，注意\n\n每天早上给孩子看看舌苔，是最简单的健康自查方式。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:10,category:"科普知识",color:"#3B6D11",bg:"#EBF5E0",name:"推拿 vs 吃药",icon:"💊",fields:[],gen:()=>`很多宝妈问我：推拿和吃药，哪个好？\n\n我的看法——\n急症：该看医生就看医生，不耽误。\n调理：推拿更温和，没有副作用，适合长期坚持。\n预防：推拿做得好，孩子少生病，少受罪，家长也少折腾。\n\n推拿不是万能的，但对脾胃调理、体质提升，有医院替代不了的作用。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:11,category:"科普知识",color:"#3B6D11",bg:"#EBF5E0",name:"季节养护提醒",icon:"🌿",fields:[{key:"season",label:"哪个季节",placeholder:"例：春季 / 冬季 / 换季时"},{key:"tip",label:"这季节要注意什么",placeholder:"例：气候变化大，孩子容易感冒"}],gen:(f)=>`${f.season||"换季"}来了，孩子最需要注意这些 👇\n\n🌱 ${f.tip||"气候变化大，正气弱的孩子最先中招"}\n🌱 饮食注意温热，少吃生冷\n🌱 提前推拿调理，比生病后治更划算\n\n有需要私信我，哈密本地上门服务。\n哈密上门小儿推拿｜微信：${PHONE}`},
-{id:12,category:"日常 / 人设",color:"#BA7517",bg:"#FFF5E0",name:"工作日记",icon:"📝",fields:[{key:"count",label:"今天跑了几户",placeholder:"例：4"},{key:"feeling",label:"今天的感受（可不填）",placeholder:"例：手有点酸，但很满足"}],gen:(f)=>`今天跑了${f.count}户，${f.feeling||"手有点酸，但看到宝宝推完安静睡着，觉得值了"}。\n\n做这行，最大的成就感不是挣了多少钱——是孩子好了，家长放心了。\n\n哈密上门小儿推拿，明天继续 💪`},
-{id:13,category:"日常 / 人设",color:"#BA7517",bg:"#FFF5E0",name:"暖心故事",icon:"❤️",fields:[{key:"story",label:"家长说的话 / 发生的事",placeholder:"例：孩子这个月没去医院，破纪录了",type:"textarea"}],gen:(f)=>`有个宝妈今天跟我说："${f.story||"孩子这个月没去医院，破纪录了。"}"\n\n她说得轻描淡写，我心里却特别高兴。\n\n孩子健康，才是一家人最大的安心。\n哈密上门小儿推拿｜良益堂`},
-{id:14,category:"活动促销",color:"#534AB7",bg:"#F0EEFF",name:"老带新优惠",icon:"🎁",fields:[{key:"discount",label:"新客享受什么优惠",placeholder:"例：首次半价"},{key:"reward",label:"老客得到什么奖励",placeholder:"例：下次推拿减30元"}],gen:(f)=>`老客户福利 🎁\n\n感谢一直信任我的家长们，现推出推荐活动：\n\n您介绍新朋友来 → 对方${f.discount||"首次享优惠"}\n您的奖励 → ${f.reward||"下次推拿有折扣"}\n\n哈密圈子小，口碑比广告管用。\n活动名额有限，有意向的宝妈私信我登记。\n微信：${PHONE}`},
-{id:15,category:"活动促销",color:"#534AB7",bg:"#F0EEFF",name:"节日关怀",icon:"🎉",fields:[{key:"holiday",label:"什么节日",placeholder:"例：春节 / 中秋 / 国庆"}],gen:(f)=>`${f.holiday||"节日"}快乐 🎉\n\n节假日孩子聚餐多、作息乱，最容易积食和感冒。\n\n节后如果孩子出现：口气重、不想吃饭、睡不好……\n就是积食的信号，及时调理比等生病了再治强。\n\n节后正常上门服务，欢迎预约。\n哈密上门小儿推拿｜微信：${PHONE}`}
+  {
+    id:1, category:"案例记录", color:"#C8956B", bg:"#FDF0E8",
+    name:"积食 / 消化不好", icon:"🍽️",
+    fields:[
+      {key:"age", label:"宝宝几岁", placeholder:"例：3"},
+      {key:"days", label:"几天没好好吃饭", placeholder:"例：3"},
+      {key:"symptom", label:"还有什么症状（可不填）", placeholder:"例：肚子鼓鼓的、口气重"},
+    ],
+    gen:(f)=>`今天上门｜${f.age}岁宝宝，${f.days}天没好好吃饭${f.symptom?`，${f.symptom}`:""}，睡觉也不安稳。\n\n重点调理：脾胃 + 消积\n推拿结束宝宝很快入睡 🌙\n\n积食不处理，反复感冒、睡眠差都会跟着来。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:2, category:"案例记录", color:"#C8956B", bg:"#FDF0E8",
+    name:"感冒 / 免疫力差", icon:"🤧",
+    fields:[
+      {key:"age", label:"宝宝几岁", placeholder:"例：2"},
+      {key:"months", label:"反复感冒多久了", placeholder:"例：一个多月"},
+      {key:"result", label:"推拿后效果", placeholder:"例：出了点汗，状态轻松了"},
+    ],
+    gen:(f)=>`今天上门｜${f.age}岁宝宝，反复感冒${f.months}，刚好没几天又开始流鼻涕。\n\n重点调理：肺经 + 补正气\n推拿后${f.result||"状态明显改善"}。\n\n孩子老生病，根本在于正气不足。把体质调好，比每次生病吃药更重要。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:3, category:"案例记录", color:"#C8956B", bg:"#FDF0E8",
+    name:"睡眠差 / 夜啼", icon:"😴",
+    fields:[
+      {key:"age", label:"宝宝几岁", placeholder:"例：1"},
+      {key:"symptom", label:"睡眠问题描述", placeholder:"例：夜里频繁醒，哭闹"},
+    ],
+    gen:(f)=>`今天上门｜${f.age}岁宝宝，入睡困难，${f.symptom||"夜里频繁醒"}，妈妈也跟着没睡好。\n\n重点调理：安神 + 心脾\n推拿结束宝宝当场睡着了 😴\n\n孩子睡不好，多半是脾胃积热或心神不宁，推拿比吃药温和，适合长期坚持。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:4, category:"案例记录", color:"#C8956B", bg:"#FDF0E8",
+    name:"发烧 / 低热", icon:"🌡️",
+    fields:[
+      {key:"age", label:"宝宝几岁", placeholder:"例：4"},
+      {key:"temp", label:"体温（度）", placeholder:"例：38.2"},
+      {key:"result", label:"推拿后效果", placeholder:"例：体温回落，宝宝安静了"},
+    ],
+    gen:(f)=>`今天上门｜${f.age}岁宝宝，低烧${f.temp}度，精神还好，家长不想直接上退烧药。\n\n重点调理：清热 + 退烧穴位\n推拿完${f.result||"体温明显回落"}。\n\n38.5度以下的低烧，推拿配合物理降温是很好的选择。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:5, category:"好评反馈", color:"#378ADD", bg:"#EBF4FF",
+    name:"家长说好话了", icon:"💬",
+    fields:[
+      {key:"feedback", label:"家长说的话（原话最真实）", placeholder:"例：孩子这周胃口好多了，主动要添饭！", type:"textarea"},
+    ],
+    gen:(f)=>`收到宝妈的反馈，很开心 🙏\n\n"${f.feedback}"\n\n做这行最有成就感的时刻就是这种——孩子好了，家长安心了，值得。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:6, category:"好评反馈", color:"#378ADD", bg:"#EBF4FF",
+    name:"锦旗 / 特别致谢", icon:"🏅",
+    fields:[
+      {key:"name", label:"家长姓名", placeholder:"例：吴玥静"},
+      {key:"words", label:"锦旗上的话", placeholder:"例：妙手巧推拿，医德暖人心"},
+    ],
+    gen:(f)=>`家长送来的锦旗，字字让我感动。\n\n"${f.words}"\n\n这几个字是对我最大的鼓励，也是我继续认真做下去的动力。\n感谢${f.name}家长的信任与认可 🙏\n\n哈密上门小儿推拿，有需要的宝妈私信我。\n微信：${PHONE}`
+  },
+  {
+    id:7, category:"好评反馈", color:"#378ADD", bg:"#EBF4FF",
+    name:"老客户复购了", icon:"🔁",
+    fields:[
+      {key:"times", label:"第几次推拿了", placeholder:"例：8"},
+      {key:"before", label:"最初是什么问题", placeholder:"例：积食、睡不好"},
+      {key:"after", label:"现在改善情况", placeholder:"例：吃饭香了，睡觉安稳"},
+    ],
+    gen:(f)=>`这是第${f.times}次给这个小朋友推拿了。\n\n从最初的${f.before||"各种不舒服"}，到现在${f.after||"明显改善"}，宝妈说孩子比以前好带多了。\n\n坚持调理真的有效果。孩子体质不是一两次能改变的，贵在坚持。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:8, category:"科普知识", color:"#3B6D11", bg:"#EBF5E0",
+    name:"如何判断积食", icon:"📋",
+    fields:[],
+    gen:()=>`分享一个判断孩子积食的小方法 👇\n\n✅ 口气重、有酸味\n✅ 舌苔厚白或发黄\n✅ 大便臭、不规律\n✅ 睡觉翻来覆去\n✅ 食欲突然变差\n\n有2条以上，基本可以判断积食了。\n积食不处理，容易反复感冒、睡眠差。\n\n有问题欢迎私信——\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:9, category:"科普知识", color:"#3B6D11", bg:"#EBF5E0",
+    name:"看舌苔识健康", icon:"👅",
+    fields:[],
+    gen:()=>`宝宝的舌苔，会说话 👇\n\n🟡 薄白苔 → 正常，脾胃健康\n🟡 白厚苔 → 积食、消化不好\n🟡 黄厚苔 → 积食化热，有内火\n🟡 地图舌 → 脾胃虚弱，需要调理\n🟡 无苔/镜面舌 → 气阴两虚，注意\n\n每天早上给孩子看看舌苔，是最简单的健康自查方式。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:10, category:"科普知识", color:"#3B6D11", bg:"#EBF5E0",
+    name:"推拿 vs 吃药", icon:"💊",
+    fields:[],
+    gen:()=>`很多宝妈问我：推拿和吃药，哪个好？\n\n我的看法——\n急症：该看医生就看医生，不耽误。\n调理：推拿更温和，没有副作用，适合长期坚持。\n预防：推拿做得好，孩子少生病，少受罪，家长也少折腾。\n\n推拿不是万能的，但对脾胃调理、体质提升，有医院替代不了的作用。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:11, category:"科普知识", color:"#3B6D11", bg:"#EBF5E0",
+    name:"季节养护提醒", icon:"🌿",
+    fields:[
+      {key:"season", label:"哪个季节", placeholder:"例：春季 / 冬季 / 换季时"},
+      {key:"tip", label:"这季节要注意什么", placeholder:"例：气候变化大，孩子容易感冒"},
+    ],
+    gen:(f)=>`${f.season||"换季"}来了，孩子最需要注意这些 👇\n\n🌱 ${f.tip||"气候变化大，正气弱的孩子最先中招"}\n🌱 饮食注意温热，少吃生冷\n🌱 提前推拿调理，比生病后治更划算\n\n有需要私信我，哈密本地上门服务。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
+  {
+    id:12, category:"日常 / 人设", color:"#BA7517", bg:"#FFF5E0",
+    name:"工作日记", icon:"📝",
+    fields:[
+      {key:"count", label:"今天跑了几户", placeholder:"例：4"},
+      {key:"feeling", label:"今天的感受（可不填）", placeholder:"例：手有点酸，但很满足"},
+    ],
+    gen:(f)=>`今天跑了${f.count}户，${f.feeling||"手有点酸，但看到宝宝推完安静睡着，觉得值了"}。\n\n做这行，最大的成就感不是挣了多少钱——是孩子好了，家长放心了。\n\n哈密上门小儿推拿，明天继续 💪`
+  },
+  {
+    id:13, category:"日常 / 人设", color:"#BA7517", bg:"#FFF5E0",
+    name:"暖心故事", icon:"❤️",
+    fields:[
+      {key:"story", label:"家长说的话 / 发生的事", placeholder:"例：孩子这个月没去医院，破纪录了", type:"textarea"},
+    ],
+    gen:(f)=>`有个宝妈今天跟我说："${f.story||"孩子这个月没去医院，破纪录了。"}"\n\n她说得轻描淡写，我心里却特别高兴。\n\n孩子健康，才是一家人最大的安心。\n哈密上门小儿推拿｜良益堂`
+  },
+  {
+    id:14, category:"活动促销", color:"#534AB7", bg:"#F0EEFF",
+    name:"老带新优惠", icon:"🎁",
+    fields:[
+      {key:"discount", label:"新客享受什么优惠", placeholder:"例：首次半价"},
+      {key:"reward", label:"老客得到什么奖励", placeholder:"例：下次推拿减30元"},
+    ],
+    gen:(f)=>`老客户福利 🎁\n\n感谢一直信任我的家长们，现推出推荐活动：\n\n您介绍新朋友来 → 对方${f.discount||"首次享优惠"}\n您的奖励 → ${f.reward||"下次推拿有折扣"}\n\n哈密圈子小，口碑比广告管用。\n活动名额有限，有意向的宝妈私信我登记。\n微信：${PHONE}`
+  },
+  {
+    id:15, category:"活动促销", color:"#534AB7", bg:"#F0EEFF",
+    name:"节日关怀", icon:"🎉",
+    fields:[
+      {key:"holiday", label:"什么节日", placeholder:"例：春节 / 中秋 / 国庆"},
+    ],
+    gen:(f)=>`${f.holiday||"节日"}快乐 🎉\n\n节假日孩子聚餐多、作息乱，最容易积食和感冒。\n\n节后如果孩子出现：口气重、不想吃饭、睡不好……\n就是积食的信号，及时调理比等生病了再治强。\n\n节后正常上门服务，欢迎预约。\n哈密上门小儿推拿｜微信：${PHONE}`
+  },
 ];
-const categories=["全部","案例记录","好评反馈","科普知识","日常 / 人设","活动促销"];
-let currentCat="全部",currentTemplate=null,currentFields={};
-function init(){const tabsEl=document.getElementById("tabs");categories.forEach(cat=>{const btn=document.createElement("button");btn.className="tab"+(cat===currentCat?" active":"");btn.textContent=cat;btn.onclick=()=>filterCat(cat);tabsEl.appendChild(btn)});renderList()}
-function filterCat(cat){currentCat=cat;document.querySelectorAll(".tab").forEach((el,i)=>{el.className="tab"+(categories[i]===cat?" active":"")});renderList()}
-function renderList(){const listEl=document.getElementById("template-list");listEl.innerHTML="";const filtered=currentCat==="全部"?templates:templates.filter(t=>t.category===currentCat);filtered.forEach(t=>{const card=document.createElement("div");card.className="card";card.innerHTML=`<div class="card-icon" style="background:${t.bg}">${t.icon}</div><div class="card-info"><div class="card-name">${t.name}</div><div class="card-cat" style="color:${t.color}">${t.category}</div></div><div class="card-arrow">›</div>`;card.onclick=()=>selectTemplate(t);listEl.appendChild(card)})}
-function selectTemplate(t){currentTemplate=t;currentFields={};if(t.fields.length===0){showResult(t.gen({}));return}const formEl=document.getElementById("form-content");formEl.innerHTML=`<div class="form-header"><div class="big-emoji">${t.icon}</div><div><div class="title">${t.name}</div><div class="subtitle" style="color:${t.color}">${t.category}</div></div></div>${t.fields.map(f=>`<div class="field"><label>${f.label}</label>${f.type==='textarea'?`<textarea rows="3" placeholder="${f.placeholder}" oninput="setField('${f.key}',this.value)"></textarea>`:`<input type="text" placeholder="${f.placeholder}" oninput="setField('${f.key}',this.value)">`}</div>`).join("")}`;showPage("form")}
-function setField(key,val){currentFields[key]=val}
-function generate(){showResult(currentTemplate.gen(currentFields))}
-function showResult(text){document.getElementById("result-text").textContent=text;const b=document.getElementById("copy-btn");b.textContent="📋 一键复制文案";b.style.background="#C8956B";showPage("result")}
-async function copyText(){const text=document.getElementById("result-text").textContent;const btn=document.getElementById("copy-btn");const success=()=>{btn.textContent="✅ 复制成功！去微信粘贴发朋友圈";btn.style.background="#4A8C30"};const fallback=()=>{const ta=document.createElement("textarea");ta.value=text;ta.setAttribute("readonly","");ta.style.position="fixed";ta.style.left="-9999px";document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,ta.value.length);let ok=false;try{ok=document.execCommand("copy")}catch(e){}document.body.removeChild(ta);if(ok)success();else window.prompt("请长按下方文字，选择“全选”后复制：",text)};try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);success()}else fallback()}catch(e){fallback()}}
-function reEdit(){if(!currentTemplate||currentTemplate.fields.length===0)return goList();showPage("form")}
-function goList(){showPage("list")}
-function showPage(name){document.getElementById("page-list").style.display=name==="list"?"":"none";document.getElementById("page-form").style.display=name==="form"?"":"none";document.getElementById("page-result").style.display=name==="result"?"":"none";window.scrollTo(0,0)}
+
+const mediaMap = {
+1:{photo:"推拿过程近景：只拍孩子腹部、手臂或小手，突出父亲双手操作；避免露脸。也可拍推拿结束后孩子安静休息的局部画面。",video:"8—12秒竖屏：先拍推拿前准备，再拍2—3个腹部或手部动作，最后定格孩子安静休息。镜头稳定，不拍完整身体。",note:"不要拍夸张前后对比，不写“立刻治好”；孩子须征得家长同意，优先只拍局部。"},
+2:{photo:"孩子小手、纸巾、温水杯与推拿双手同框；或父亲给孩子做肺经相关手法的局部特写。",video:"8—15秒竖屏：手部推拿特写＋孩子安静配合的局部镜头，可加入轻声环境音。",note:"不要拍孩子流鼻涕、哭闹等不舒适特写，也不要承诺增强免疫或治疗感冒。"},
+3:{photo:"暖色床边场景，孩子小手或侧身局部、父亲轻柔推拿的双手，画面安静柔和。",video:"10秒左右：柔和灯光下拍轻缓手法，结尾拍小手放松或盖好被角。",note:"不使用“当场睡着”等绝对效果画面；避免闪光灯和正脸。"},
+4:{photo:"体温计、温水、毛巾和推拿准备物品的整洁静物照；或手部操作局部。",video:"科普型短视频：先拍体温计，再拍推拿手法局部，字幕提示“持续高热或精神差请及时就医”。",note:"发热内容必须加就医提醒；不要展示或宣传替代退烧药、替代医生。"},
+5:{photo:"家长聊天好评截图，隐去头像、姓名和联系方式；搭配一张干净的服务场景局部图。",video:"录屏式短视频：慢慢划过打码后的真实反馈，再切到1—2秒工作画面。",note:"截图必须充分打码，保留真实口吻，不自行修改家长原话。"},
+6:{photo:"父亲手持锦旗的自然合影，或锦旗与门店/工具同框；客户不便露脸时只拍锦旗。",video:"5—10秒：从锦旗文字缓慢移到父亲微笑致谢，保持真实、朴素。",note:"锦旗文字要清楚，人物不过度美化；未经同意不要展示家长和孩子。"},
+7:{photo:"连续服务记录拼图：同一套工具、预约记录局部、推拿双手等3张图，避免用孩子前后对比照。",video:"时间线短视频：第1次、第N次，用日期卡片＋手部服务画面串联。",note:"重点表达持续服务和家长信任，不宣称疗效保证。"},
+8:{photo:"自制5点积食判断卡片，配简洁插画；或父亲拿着科普卡片出镜。",video:"15—30秒口播：父亲逐条讲5个观察信号，画面穿插舌苔示意、饭碗、睡眠等生活镜头。",note:"注明“仅供日常观察，不能代替诊断”；不要把两项症状直接说成确诊。"},
+9:{photo:"舌苔科普示意图，使用插画或经过授权的示例图；最好配父亲讲解照片。",video:"20—30秒口播：讲正常舌苔和需要关注的变化，只用示意图，不拍客户孩子口腔。",note:"避免根据舌苔直接下疾病结论；异常持续或伴随不适应就医。"},
+10:{photo:"一边是推拿工具/双手，一边是医院就诊相关的中性图标，做成“急症先就医、日常重观察”的卡片。",video:"父亲正面口播：说明什么时候应就医、什么时候可做日常健康管理。",note:"不使用“没有副作用”“医院替代不了”等绝对说法，建议同步优化原文。"},
+11:{photo:"当季真实生活场景：春季绿植、秋冬外套、温水杯，再加入父亲工作手部照。",video:"10—20秒换季提醒：天气镜头＋饮食/穿衣/作息提示＋服务画面。",note:"季节建议以生活管理为主，不制造焦虑。"},
+12:{photo:"当天工作纪实：工具包、出门背影、楼道或整理用品，3张组成九宫格。",video:"Vlog：收拾工具→出门→到达→洗手准备→结束收纳，每个镜头1—2秒。",note:"真实比精修更重要；客户家庭门牌、地址和个人信息不要入镜。"},
+13:{photo:"一张有温度的工作场景：父亲整理工具、孩子小手递纸巾，或暖色空镜。",video:"故事型短视频：父亲口述家长一句话，搭配工作细节和回家路上的镜头。",note:"故事中姓名、住址、病情等信息要模糊处理。"},
+14:{photo:"清晰活动海报：老客奖励、新客权益、活动期限和预约方式；背景用真实服务手部图。",video:"15秒活动说明：父亲出镜说清规则，字幕展示优惠、期限、名额和预约方式。",note:"优惠规则写清楚，避免“最后一天”等虚假紧迫感。"},
+15:{photo:"节日元素＋服务场景局部，例如灯笼、月饼、春联或国旗色小装饰，画面保持简洁。",video:"节日前后10—15秒：节日空镜→饮食作息提醒→预约说明。",note:"节日内容以关怀和提醒为主，不把正常节后状态都说成积食。"}
+};
+
+const categories = ["全部","案例记录","好评反馈","科普知识","日常 / 人设","活动促销"];
+let currentCat = "全部";
+let currentTemplate = null;
+let currentFields = {};
+
+function init() {
+  const tabsEl = document.getElementById("tabs");
+  categories.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "tab" + (cat === currentCat ? " active" : "");
+    btn.textContent = cat;
+    btn.onclick = () => filterCat(cat);
+    tabsEl.appendChild(btn);
+  });
+  renderList();
+}
+
+function filterCat(cat) {
+  currentCat = cat;
+  document.querySelectorAll(".tab").forEach((el,i) => {
+    el.className = "tab" + (categories[i] === cat ? " active" : "");
+  });
+  renderList();
+}
+
+function renderList() {
+  const listEl = document.getElementById("template-list");
+  listEl.innerHTML = "";
+  const filtered = currentCat === "全部" ? templates : templates.filter(t => t.category === currentCat);
+  filtered.forEach(t => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="card-icon" style="background:${t.bg}">${t.icon}</div>
+      <div class="card-info">
+        <div class="card-name">${t.name}</div>
+        <div class="card-cat" style="color:${t.color}">${t.category}</div>
+      </div>
+      <div class="card-arrow">›</div>
+    `;
+    card.onclick = () => selectTemplate(t);
+    listEl.appendChild(card);
+  });
+}
+
+function selectTemplate(t) {
+  currentTemplate = t;
+  currentFields = {};
+  if (t.fields.length === 0) {
+    showResult(t.gen({}));
+    return;
+  }
+  const formEl = document.getElementById("form-content");
+  formEl.innerHTML = `
+    <div class="form-header">
+      <div class="big-emoji">${t.icon}</div>
+      <div>
+        <div class="title">${t.name}</div>
+        <div class="subtitle" style="color:${t.color}">${t.category}</div>
+      </div>
+    </div>
+    ${t.fields.map(f => `
+      <div class="field">
+        <label>${f.label}</label>
+        ${f.type === 'textarea'
+          ? `<textarea rows="3" placeholder="${f.placeholder}" oninput="setField('${f.key}',this.value)"></textarea>`
+          : `<input type="text" placeholder="${f.placeholder}" oninput="setField('${f.key}',this.value)">`
+        }
+      </div>
+    `).join("")}
+  `;
+  showPage("form");
+}
+
+function setField(key, val) {
+  currentFields[key] = val;
+}
+
+function generate() {
+  const result = currentTemplate.gen(currentFields);
+  showResult(result);
+}
+
+function showResult(text) {
+  document.getElementById("result-text").textContent = text;
+  const media = currentTemplate ? mediaMap[currentTemplate.id] : null;
+  document.getElementById("media-box").style.display = media ? "" : "none";
+  if (media) {
+    document.getElementById("media-photo").textContent = media.photo;
+    document.getElementById("media-video").textContent = media.video;
+    document.getElementById("media-note").textContent = "拍摄注意：" + media.note;
+  }
+  document.getElementById("copy-btn").textContent = "📋 一键复制文案";
+  document.getElementById("copy-btn").style.background = "#C8956B";
+  showPage("result");
+}
+
+async function copyText() {
+  const text = document.getElementById("result-text").textContent;
+  const btn = document.getElementById("copy-btn");
+
+  function success() {
+    btn.textContent = "✅ 复制成功！去微信粘贴发朋友圈";
+    btn.style.background = "#4A8C30";
+  }
+
+  function fallbackCopy() {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    ta.style.fontSize = "16px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    if (ok) {
+      success();
+    } else {
+      window.prompt("请长按下方文字，选择“全选”后复制：", text);
+    }
+  }
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      success();
+    } else {
+      fallbackCopy();
+    }
+  } catch (e) {
+    fallbackCopy();
+  }
+}
+
+function reEdit() {
+  if (!currentTemplate) return goList();
+  if (currentTemplate.fields.length === 0) return goList();
+  showPage("form");
+}
+
+function goList() {
+  showPage("list");
+}
+
+function showPage(name) {
+  document.getElementById("page-list").style.display = name === "list" ? "" : "none";
+  document.getElementById("page-form").style.display = name === "form" ? "" : "none";
+  document.getElementById("page-result").style.display = name === "result" ? "" : "none";
+  window.scrollTo(0, 0);
+}
+
 init();
-(function(){const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);const standalone=window.navigator.standalone===true;if(isIOS&&!standalone&&location.protocol.indexOf("http")===0){const footer=document.querySelector(".footer");if(footer){const tip=document.createElement("div");tip.style.cssText="margin-top:10px;color:#A07850;font-size:11px;line-height:1.6";tip.textContent="可在 Safari 中点“分享”→“添加到主屏幕”，以后像 App 一样打开";footer.appendChild(tip)}}})();
 </script>
+
+<script>
+(function () {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const standalone = window.navigator.standalone === true;
+  if (isIOS && !standalone && location.protocol.indexOf("http") === 0) {
+    const footer = document.querySelector(".footer");
+    if (footer) {
+      const tip = document.createElement("div");
+      tip.style.cssText = "margin-top:10px;color:#A07850;font-size:11px;line-height:1.6";
+      tip.textContent = "可在 Safari 中点“分享”→“添加到主屏幕”，以后像 App 一样打开";
+      footer.appendChild(tip);
+    }
+  }
+})();
+</script>
+
 </body>
 </html>
